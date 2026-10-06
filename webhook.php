@@ -326,7 +326,7 @@ if (($data['d']['plain_token'] ?? false) && ($data['d']['event_ts'] ?? false)) {
         logs('加群参数不足', json_encode($data), true);
         exit();
     }
-} else if (($data['t'] ?? '') === 'INTERACTION_CREATE') {
+} else if (($data['t'] ?? '') === 'INTERACTION_CREATE'&& ($data['d']['type'] ?? '') === 11) {
     //用户点击解除禁言按钮
     $group_openid = $data['d']['group_openid'] ?? '';
     $member_openid = $data['d']['group_member_openid'] ?? '';
