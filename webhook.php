@@ -255,6 +255,15 @@ if (($data['d']['plain_token'] ?? false) && ($data['d']['event_ts'] ?? false)) {
         $date->setTimezone(new DateTimeZone('Asia/Shanghai'));
         $muteStopTimeM = $date->format('Y-m-d H:i:s');
         $muteStopTimeT = $date->format('Y-m-d\TH:i:sP');
+        $muteUserList = $DB->query("SELECT * FROM `newUser` WHERE `groupOpenid` = '{$group_openid}' AND `status` = '0' ORDER BY `addTime` DESC LIMIT 50");
+        $muteUserOpenids = [];
+        while ($row = $muteUserList->fetch_assoc()) {
+            $muteUserOpenids[] = $row['memberOpenid'];
+        }
+        $muteUserOpenids[] = $member_openid;
+        //新的按钮可以被最近50个未验证的成员点击，避免他没看到自己的消息，被其他人的消息刷没了，保证他也能点击最新按钮
+        //specify_user_ids不确定上限是多少，先放50个
+        $buttonData = md5($group_openid . $member_openid);
         $groupMsg = json_decode('{
             "msg_type": 2,
             "markdown": {
@@ -275,12 +284,10 @@ if (($data['d']['plain_token'] ?? false) && ($data['d']['event_ts'] ?? false)) {
                         "action": {
                             "type": 1,
                             "permission": {
-                            "type": 0,
-                            "specify_user_ids": [
-                                "' . $member_openid . '"
-                            ]
+                                "type": 0,
+                                "specify_user_ids": ' . json_encode($muteUserOpenids) . '
                             },
-                            "data": "good",
+                            "data": "' . $buttonData . '",
                             "unsupport_tips": "当前 QQ 版本不支持，请升级后重试"
                         }
                         }
@@ -326,7 +333,24 @@ if (($data['d']['plain_token'] ?? false) && ($data['d']['event_ts'] ?? false)) {
         logs('加群参数不足', json_encode($data), true);
         exit();
     }
-} else if (($data['t'] ?? '') === 'INTERACTION_CREATE'&& ($data['d']['type'] ?? '') === 11) {
+} else if (($data['t'] ?? '') === 'GROUP_MEMBER_REMOVE') {
+    //成员被移出群事件
+    $group_openid = $data['d']['group_openid'] ?? '';
+    $member_openid = $data['d']['member_openid'] ?? '';
+    logs('成员：' . $member_openid . ' 被移出群或自己退群：' . $group_openid);
+    fastEnd($group_openid, $member_openid);
+    if ($group_openid && $member_openid) {
+        $checkUserResult = $DB->query("SELECT * FROM `newUser` WHERE `groupOpenid` = '{$group_openid}' AND `memberOpenid` = '{$member_openid}' LIMIT 1");
+        if ($checkUserResult->num_rows > 0) {
+            $row = $checkUserResult->fetch_assoc();
+            $DB->query("UPDATE `newUser` SET `status` = 2,`doneTime` = NOW() WHERE `id` = '{$row['id']}'");
+        }
+        exit();
+    } else {
+        logs('移出群参数不足', json_encode($data), true);
+        exit();
+    }
+} else if (($data['t'] ?? '') === 'INTERACTION_CREATE' && ($data['d']['type'] ?? '') === 11) {
     //用户点击解除禁言按钮
     $group_openid = $data['d']['group_openid'] ?? '';
     $member_openid = $data['d']['group_member_openid'] ?? '';
@@ -336,9 +360,9 @@ if (($data['d']['plain_token'] ?? false) && ($data['d']['event_ts'] ?? false)) {
         logs('按钮点击参数不足', json_encode($data), true);
         exit();
     }
-    $checkUserResult = $DB->query("SELECT * FROM `newUser` WHERE `groupOpenid` = '{$group_openid}' AND `memberOpenid` = '{$member_openid}' LIMIT 1");
+    $checkUserResult = $DB->query("SELECT * FROM `newUser` WHERE `groupOpenid` = '{$group_openid}' AND `memberOpenid` = '{$member_openid}' AND `status` = 0 LIMIT 1");
     if ($checkUserResult->num_rows < 1) {
-        logs('点击按钮的成员不在数据库中', json_encode($data), true);
+        logs('点击按钮的成员不在数据库中或者已经解除禁言', json_encode($data), true);
         exit();
     }
     $unMuteList = [
@@ -357,15 +381,20 @@ if (($data['d']['plain_token'] ?? false) && ($data['d']['event_ts'] ?? false)) {
     }
     $row = $checkUserResult->fetch_assoc();
     $DB->query("UPDATE `newUser` SET `status` = 1,`doneTime` = NOW() WHERE `id` = '{$row['id']}'");
-    $messageId = $row['messageId'] ?? '';
-    if ($messageId) {
-        $deleteMsgResult = request([], 'v2/groups/' . $group_openid . '/messages/' . $messageId, 'DELETE');
-        if (($deleteMsgResult['err_code'] ?? 0) == 40064004) {
-            //消息已经超时，无法撤回
-            logs('验证消息无法撤回，因为时间太久' . $group_openid, json_encode($data), true);
-        } else if ($deleteMsgResult !== []) {
-            logs('撤回验证消息失败，群：' . $group_openid, json_encode($data), true);
-            exit();
+    $bottonData = $data['d']['data']['resolved']['button_data'] ?? '';
+    if ($bottonData == md5($group_openid . $member_openid) || $bottonData == 'good') {
+        //这个good是为了兼容旧版本的按钮，旧版本的按钮返回都是good
+        //必须是被@的本人点击才撤回消息，其他被禁言的人点击按钮只会解除禁言，不会撤回消息
+        $messageId = $row['messageId'] ?? '';
+        if ($messageId) {
+            $deleteMsgResult = request([], 'v2/groups/' . $group_openid . '/messages/' . $messageId, 'DELETE');
+            if (($deleteMsgResult['err_code'] ?? 0) == 40064004) {
+                //消息已经超时，无法撤回
+                logs('验证消息无法撤回，因为时间太久' . $group_openid, json_encode($data), true);
+            } else if ($deleteMsgResult !== []) {
+                logs('撤回验证消息失败，群：' . $group_openid, json_encode($data), true);
+                exit();
+            }
         }
     }
     logs('解除禁言成功，群：' . $group_openid . '，成员：' . $member_openid);
@@ -386,8 +415,8 @@ if (($data['d']['plain_token'] ?? false) && ($data['d']['event_ts'] ?? false)) {
     if (!$replayResult) {
         logs('回复私聊消息失败，用户：' . $userOpenid, json_encode($data), true);
         exit();
-    }else if(($replayResult['err_code'] ?? 0) != 0){
-        logs('回复私聊消息失败，用户：' . $userOpenid . '，错误码：' . $replayResult['err_code'].'，请查阅文档https://bot.q.qq.com/wiki/develop/api-v2/', json_encode($replayResult), true);
+    } else if (($replayResult['err_code'] ?? 0) != 0) {
+        logs('回复私聊消息失败，用户：' . $userOpenid . '，错误码：' . $replayResult['err_code'] . '，请查阅文档https://bot.q.qq.com/wiki/develop/api-v2/', json_encode($replayResult), true);
         exit();
     }
 } else {

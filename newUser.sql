@@ -12,7 +12,7 @@ CREATE TABLE `newUser` (
   `id` int(11) NOT NULL,
   `memberOpenid` varchar(256) NOT NULL,
   `groupOpenid` varchar(256) NOT NULL,
-  `status` int(11) NOT NULL DEFAULT '0' COMMENT '0未验证，1已验证，2已踢出',
+  `status` int(11) NOT NULL DEFAULT '0' COMMENT '0未验证，1已验证，2已退出或被移出',
   `messageId` varchar(256) NOT NULL,
   `addTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `doneTime` timestamp NULL DEFAULT NULL
