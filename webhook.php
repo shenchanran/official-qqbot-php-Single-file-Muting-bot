@@ -1,19 +1,5 @@
 <?php
-$AppID = "*******";
-$AppSecret = "*******";
-$conf = [
-    'mysql_host' => '127.0.0.1:3306',
-    'mysql_user' => '*******',
-    'mysql_pass' => '*******',
-    'mysql_db' => '*******'
-];
-$host = 'https://api.bot.qq.com/';
-$muteTime = 2591999; // 禁言时间，单位为秒
-
-//目前清理功能还没做，因为官方的踢人接口没开放，需要内邀（意思就是不让用），所以建议把禁言时间改成一个月，然后每半个月自己去群成员列表里手动删除剩余禁言时间<25天的（相当于5天内都没点击验证按钮）
-$cleanTime = 604800; // 超时时间，单位为秒，超时未验证的用户在调用clean后踢出，禁言时间应该大于超时时间
-$cleanKey = '123456'; // 清理超时未验证用户的接口密钥，建议设置一个复杂的字符串，使用方式：定时任务访问 https://yourdomain.com/webhook.php?clean=your_clean_key 即可清理超时未验证用户
-
+require __DIR__ . '/botConfig.php';
 if ($cleanTime > $muteTime) {
     logs('超时时间不能大于禁言时间', '', true);
     http_response_code(500);
@@ -376,7 +362,7 @@ if (($data['d']['plain_token'] ?? false) && ($data['d']['event_ts'] ?? false)) {
     ];
     $unMuteResult =  request($unMuteList, 'v2/groups/' . $group_openid . '/restrict_chat_setting');
     if ($unMuteResult !== []) {
-        logs('解除禁言失败： ' . $group_openid, json_encode($data), true);
+        logs('解除禁言失败： ' . $group_openid, json_encode($unMuteResult), true);
         exit();
     }
     $row = $checkUserResult->fetch_assoc();

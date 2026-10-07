@@ -1,15 +1,15 @@
 # QQ 群入群禁言验证机器人
 
-一个基于 PHP 的单文件 QQ 机器人 Webhook 回调。新成员入群后，机器人发送带有「点我解除禁言」按钮的欢迎消息，并对该成员禁言；成员点击按钮后解除禁言，记录验证结果并尝试撤回欢迎消息。
+一个基于 PHP 的2文件 QQ 机器人 Webhook 回调。新成员入群后，机器人发送带有「点我解除禁言」按钮的欢迎消息，并对该成员禁言；成员点击按钮后解除禁言，记录验证结果并尝试撤回欢迎消息。
 
 主要逻辑集中在 `webhook.php`，使用 MySQL 保存成员验证记录和访问令牌，无需 Composer 依赖。这里的「验证」是按钮点击确认，不包含验证码、身份审核或其他人机识别机制。
 
 ## 快速开始
 - 建议使用宝塔 + php8.2 + mysql5.7，其他版本自测
-- 把`webhook.php`上传到你的网站中（需要https，不清楚是否需要备案）
+- 把`webhook.php`和`botConfig.php`上传到你的网站中，放在同一个目录下（网站域名需要https，不清楚是否需要备案）
 - 把`newUser.sql`和`acessToken.sql`上传到数据库中，两个表放到一个库
-- 编辑`webhook.php`前几行，把参数都设置好
-- 前往`https://q.qq.com`，给机器人设置webhook回调到你的网站上的这个文件上，例如`https://example.php/webhook.php`，建议放开全部权限，webhook.php可以改名，不影响
+- 编辑`botConfig.php`，把参数都设置好
+- 前往`https://q.qq.com`，给机器人设置webhook回调到你的网站上的`webhook.php`上，例如`https://example.php/webhook.php`，建议放开全部权限，`webhook.php`可以改名，不影响
 - 把QQ机器人邀请到群里，**设置管理员权限**
 
 ## 使用提示
