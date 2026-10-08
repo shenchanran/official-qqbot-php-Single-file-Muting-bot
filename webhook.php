@@ -304,7 +304,7 @@ if (($data['d']['plain_token'] ?? false) && ($data['d']['event_ts'] ?? false)) {
         ];
         $muteResult =  request($muteList, 'v2/groups/' . $group_openid . '/restrict_chat_setting');
         if ($muteResult !== []) {
-            logs('群成员' . $member_openid . ' 禁言失败，群：' . $group_openid, json_encode($data), true);
+            logs('群成员' . $member_openid . ' 禁言失败，群：' . $group_openid, json_encode($muteResult), true);
             exit();
         }
         $userResult = $DB->query("SELECT * FROM `newUser` WHERE `groupOpenid` = '{$group_openid}' AND `memberOpenid` = '{$member_openid}' LIMIT 1");
