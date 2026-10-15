@@ -269,7 +269,7 @@ if (($data['d']['plain_token'] ?? false) && ($data['d']['event_ts'] ?? false)) {
                         "action": {
                             "type": 1,
                             "permission": {
-                                "type": 2,
+                                "type": 2
                             },
                             "data": "' . $buttonData . '",
                             "unsupport_tips": "当前 QQ 版本不支持，请升级后重试"
