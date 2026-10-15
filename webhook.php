@@ -241,14 +241,13 @@ if (($data['d']['plain_token'] ?? false) && ($data['d']['event_ts'] ?? false)) {
         $date->setTimezone(new DateTimeZone('Asia/Shanghai'));
         $muteStopTimeM = $date->format('Y-m-d H:i:s');
         $muteStopTimeT = $date->format('Y-m-d\TH:i:sP');
-        $muteUserList = $DB->query("SELECT * FROM `newUser` WHERE `groupOpenid` = '{$group_openid}' AND `status` = '0' ORDER BY `addTime` DESC LIMIT 50");
-        $muteUserOpenids = [];
-        while ($row = $muteUserList->fetch_assoc()) {
-            $muteUserOpenids[] = $row['memberOpenid'];
-        }
-        $muteUserOpenids[] = $member_openid;
-        //新的按钮可以被最近50个未验证的成员点击，避免他没看到自己的消息，被其他人的消息刷没了，保证他也能点击最新按钮
-        //specify_user_ids不确定上限是多少，先放50个
+        // $muteUserList = $DB->query("SELECT * FROM `newUser` WHERE `groupOpenid` = '{$group_openid}' AND `status` = '0' ORDER BY `addTime` DESC LIMIT 50");
+        // $muteUserOpenids = [];
+        // while ($row = $muteUserList->fetch_assoc()) {
+        //     $muteUserOpenids[] = $row['memberOpenid'];
+        // }
+        // $muteUserOpenids[] = $member_openid;
+        //QQ机器人不稳定，如果传入错误$member_openid会导致欢迎消息无法发送，所以现在所有人都有权利点击解除禁言按钮，点击后再去判断用户的状态
         $buttonData = md5($group_openid . $member_openid);
         $groupMsg = json_decode('{
             "msg_type": 2,
@@ -270,8 +269,7 @@ if (($data['d']['plain_token'] ?? false) && ($data['d']['event_ts'] ?? false)) {
                         "action": {
                             "type": 1,
                             "permission": {
-                                "type": 0,
-                                "specify_user_ids": ' . json_encode($muteUserOpenids) . '
+                                "type": 2,
                             },
                             "data": "' . $buttonData . '",
                             "unsupport_tips": "当前 QQ 版本不支持，请升级后重试"
