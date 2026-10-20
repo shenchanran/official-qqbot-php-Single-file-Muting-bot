@@ -252,7 +252,7 @@ if (($data['d']['plain_token'] ?? false) && ($data['d']['event_ts'] ?? false)) {
         $groupMsg = json_decode('{
             "msg_type": 2,
             "markdown": {
-                "content": "<qqbot-at-user id=\"' . $member_openid . '\" />，欢迎进群，请点击下方按钮解除禁言。"
+                "content": "<qqbot-at-user id=\"' . $member_openid . '\" />，欢迎进群，请点击下方按钮解除禁言。(鸿蒙系统无按钮请私聊群主)"
             },
             "keyboard": {
                 "content": {
